@@ -82,11 +82,13 @@ const loginUser=asyncHandler(async (req,res)=>{
     //send cokkies
 
     const {email,username,password}=req.body
+    console.log(email);
+
     if (!(username || email)) {
         throw new ApiError(400,"username or password is required!")
     }
-    const user =await User.find({
-        $or: [{email},{username}]
+    const user =await User.findOne({
+        $or: [{username},{email}]
     })
     if(!user){
         throw new ApiError(404,"User not found")
