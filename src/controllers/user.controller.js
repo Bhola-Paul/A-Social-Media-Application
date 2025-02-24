@@ -4,6 +4,7 @@ import {User} from '../models/user.model.js'
 import {uploadOnCloudinary} from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 
 const generateAccessAndRefreshTokens=async(userId)=>{
     try {
@@ -136,10 +137,10 @@ const logoutUser=asyncHandler(async (req,res)=>{
 const refreshAccessToken=asyncHandler(async(req,res)=>{
     const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken
     if(!incomingRefreshToken){
-        throw new ApiError(401,"Refresh token not found!")
+        throw new ApiError(401,"Unauthorized request!")
     }
     try {
-        const decodedToken=jwt.verify(incomingRefreshToken,process.env.ACCESS_TOKEN_SECRET)
+        const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
         const user=await User.findById(decodedToken?._id)
         if(!user){
             throw new ApiError(404,"Invalid refresh token!")
@@ -154,7 +155,7 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
         }
         const {accessToken,newRefreshToken}=await generateAccessAndRefreshTokens(user._id)
         return res.status(200).cookie("accessToken",accessToken,options).cookie("newRefreshToken",newRefreshToken,options).json(
-            new ApiResponse(200,{accessToken,newRefreshToken},"Access Token refreshed!")
+            new ApiResponse(200,{accessToken,RefreshToken: newRefreshToken},"Access Token refreshed!")
         )
     } catch (error) {
         throw new ApiError(401,error?.message || "Invalid refresh token")
@@ -180,9 +181,9 @@ const getCurrentUser=asyncHandler(async(req,res)=>{
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
-    const {fullName, email} = req.body
+    const {fullname, email} = req.body
 
-    if (!fullName || !email) {
+    if (!fullname || !email) {
         throw new ApiError(400, "All fields are required")
     }
 
@@ -190,7 +191,7 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
         req.user?._id,
         {
             $set: {
-                fullName,
+                fullname,
                 email: email
             }
         },
@@ -227,6 +228,7 @@ const updateUserAvatar=asyncHandler(async(req,res)=>{
         new ApiResponse(200,user,"Avatar updated!")
     )
 })
+
 const updateCoverImage=asyncHandler(async(req,res)=>{
     const coverImageLocalPath=req.file?.path
     if(!coverImageLocalPath){
